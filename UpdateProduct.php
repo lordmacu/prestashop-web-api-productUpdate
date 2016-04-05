@@ -1,4 +1,10 @@
 <?php
+/*
+ *
+ * Example of using the PrestShop WebService to create a product with
+ * its stock and its image
+ *
+ */
 
 ini_set('display_errors', '1');
 $_POST["codigo_producto"] = preg_replace('/\s+/', '', $_POST["codigo_producto"]);
@@ -9,6 +15,7 @@ define('PS_SHOP_PATH', 'http://www.mctools.co');
 
 define('PS_WS_AUTH_KEY', 'T5FVAVQ2BBN9MDZGTVUHD142WINYAE6R');
 require_once ('PSWebServiceLibrary.php');
+//Here we take the product schema and add our datas
 $webService = new PrestaShopWebservice(PS_SHOP_PATH, PS_WS_AUTH_KEY, DEBUG);
 
 try {
@@ -16,6 +23,9 @@ try {
 	$opt['filter']['ean13'] = $_POST["codigo_producto"];
 	$xml = $webService -> get($opt);
 	$x = ($xml -> products[0] -> product -> attributes());
+
+	// $xml = $webService->get(array('url' => PS_SHOP_PATH . '/api/search/?reference=15254'));
+	// $xml = $webService->get(array('url' => PS_SHOP_PATH . '/api/search?query=product&language=1')); http://url_to_prestashop/api/resourse/id
 
 	$resources = $xml -> children() -> children();
 
@@ -48,8 +58,11 @@ function cambioarNombre($id) {
 		$opt = array('resource' => 'products');
 		$opt['id'] = $id;
 		$xml = $webService -> get($opt);
+
+		// Here we get the elements from children of customer markup which is children of prestashop root markup
 		$resources = $xml -> children() -> children();
 	} catch (PrestaShopWebserviceException $e) {
+		// Here we are dealing with errors
 		$trace = $e -> getTrace();
 		if ($trace[0]['args'][0] == 404)
 			echo 'Bad ID';
@@ -59,10 +72,10 @@ function cambioarNombre($id) {
 			echo 'Other error<br />' . $e -> getMessage();
 	}
 
-	try {
-		$imagendefault = $resources -> id_default_image;
-		$url = PS_SHOP_PATH . '/api/images/products/' . $id . "/" . (int)$imagendefault . "?ps_method=PUT";
+	$idurlimagen = $resources -> id_default_image;
+	$url = PS_SHOP_PATH . '/api/images/products/' . $id . '/' . $idurlimagen . '?ps_method=PUT';
 
+	try {
 		unset($resources -> id_default_image);
 		unset($resources -> position_in_category);
 		unset($resources -> manufacturer_name);
@@ -78,47 +91,48 @@ function cambioarNombre($id) {
 		$resources -> price = $_POST['precio_producto'];
 		$resources -> ean13 = $_POST['codigo_producto'];
 		$resources -> name -> language[0][0] = $_POST["title"];
-		$resources -> description -> language[0][0] = $_POST["descripcion_producto"];
+
+		$resources -> description -> language[0][0] = '<p><img src="' . str_replace('#', '', $_POST["imag_ft"]) . '" alt="' . $_POST["title"] . '" width="500" height="360" /></p>';
 		$resources -> meta_description -> language[0][0] = $_POST["descripcion_producto"];
 		$resources -> meta_title -> language[0][0] = $_POST["title"];
 		$resources -> meta_keywords -> language[0][0] = $_POST["palabrasClave"];
 		$resources -> link_rewrite -> language[0][0] = format_uri($_POST["title"]);
 
+		$resources -> description_short -> language[0][0] = $_POST["descripcion_producto"];
+
 		$resources -> associations -> categories -> addChild('category') -> addChild('id', $_POST['categoria_padre']);
 		$resources -> associations -> categories -> addChild('category') -> addChild('id', $_POST['categoria_hijo']);
 
 		$image_path = $_FILES['upload']["tmp_name"];
-		//  $image_path="/home/users/web/b2716/ipg.markandstorecom/hijo.jpg";
+		echo "Actualizado correctamente";
 
 		if (isset($_FILES['upload'])) {
+
 			$errors = array();
 			$file_name = $_FILES['upload']['name'];
 			$file_size = $_FILES['upload']['size'];
 			$file_tmp = $_FILES['upload']['tmp_name'];
 			$file_type = $_FILES['upload']['type'];
 			$file_ext = strtolower(end(explode('.', $_FILES['upload']['name'])));
-
 			$expensions = array("jpeg", "jpg", "png");
-
 			if (in_array($file_ext, $expensions) === false) {
 				$errors[] = "extension not allowed, please choose a JPEG or PNG file.";
 			}
-
 			if ($file_size > 2097152) {
 				$errors[] = 'File size must be excately 2 MB';
 			}
 
 			if (empty($errors) == true) {
+
 				move_uploaded_file($file_tmp, "img/" . $file_name);
-				echo "Success";
 
 				$image_path = "/home/users/web/b2716/ipg.markandstorecom/request/img/" . $file_name;
-				echo $image_path;
+
 				$ch = curl_init();
 				curl_setopt($ch, CURLOPT_URL, $url);
 				curl_setopt($ch, CURLOPT_POST, true);
 				curl_setopt($ch, CURLOPT_USERPWD, PS_WS_AUTH_KEY . ':');
-				curl_setopt($ch, CURLOPT_POSTFIELDS, array('image' => '@' . $image_path . ';type=image/jpg'));
+				curl_setopt($ch, CURLOPT_POSTFIELDS, array('image' => '@' . $image_path));
 				curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 				$result = curl_exec($ch);
 				curl_close($ch);
@@ -141,8 +155,9 @@ function cambioarNombre($id) {
 		$opt['putXml'] = $xml -> asXML();
 		$opt['id'] = $id;
 		$xml = $webService -> edit($opt);
-		echo "Successfully updated.";
+		// if WebService don't throw an exception the action worked well and we don't show the following message
 	} catch (PrestaShopWebserviceException $ex) {
+		// Here we are dealing with errors
 		$trace = $ex -> getTrace();
 		echo $ex -> getMessage();
 		if ($trace[0]['args'][0] == 404)
@@ -157,7 +172,7 @@ function cambioarNombre($id) {
 
 function UpdateProducto($id) {
 
-	getIdStockAvailableAndSet($id);
+	//getIdStockAvailableAndSet($id);
 	cambioarNombre($id);
 }
 
@@ -167,6 +182,8 @@ function getIdStockAvailableAndSet($ProductId) {
 	$opt['id'] = $ProductId;
 	$xml = $webService -> get($opt);
 	foreach ($xml->product->associations->stock_availables->stock_available as $item) {
+		//echo "ID: ".$item->id."<br>";
+		//echo "Id Attribute: ".$item->id_product_attribute."<br>";
 		set_product_quantity($ProductId, $item -> id, $item -> id_product_attribute);
 	}
 }
@@ -187,7 +204,6 @@ function set_product_quantity($ProductId, $StokId, $AttributeId) {
 		$opt['putXml'] = $xml -> asXML();
 		$opt['id'] = $StokId;
 		$xml = $webService -> edit($opt);
-		echo "cantidad producto actualizada";
 
 	} catch (PrestaShopWebserviceException $ex) {
 		echo "<b>Error al setear la cantidad  ->Error : </b>" . $ex -> getMessage() . '<br>';
@@ -285,7 +301,7 @@ function CrearProducto() {
 	$node = dom_import_simplexml($resources -> description -> language[0][0]);
 	$no = $node -> ownerDocument;
 	$node -> appendChild($no -> createCDATASection("cdata description"));
-	$resources -> description -> language[0][0] = $_POST["descripcion_producto"];
+	$resources -> description -> language[0][0] = '<p><img src="' . str_replace('#', '', $_POST["imag_ft"]) . '" alt="' . $_POST["title"] . '" width="500" height="360" /></p>';
 	$resources -> description -> language[0][0]['id'] = 1;
 	$resources -> description -> language[0][0]['xlink:href'] = PS_SHOP_PATH . '/api/languages/1';
 	$node = dom_import_simplexml($resources -> description_short -> language[0][0]);
@@ -308,6 +324,7 @@ function CrearProducto() {
 	$resources -> available_later -> language[0][0]['xlink:href'] = PS_SHOP_PATH . '/api/languages/1';
 	$resources -> associations -> categories -> addChild('category') -> addChild('id', $_POST['categoria_padre']);
 	$resources -> associations -> categories -> addChild('category') -> addChild('id', $_POST['categoria_hijo']);
+	//Here we call to add a new product
 	try {
 		$opt = array('resource' => 'products');
 		$opt['postXml'] = $xml -> asXML();
@@ -317,6 +334,7 @@ function CrearProducto() {
 		$trace = $ex -> getTrace();
 		print_r($trace);
 	}
+	echo "Creado correctamente";
 
 	$resources = $xml_request -> children() -> children();
 
@@ -328,6 +346,7 @@ function CrearProducto() {
 		$opt['id'] = $stock_available_id;
 		$xml = $webService -> get($opt);
 	} catch (PrestaShopWebserviceException $e) {
+		// Here we are dealing with errors
 		$trace = $e -> getTrace();
 		if ($trace[0]['args'][0] == 404)
 			echo 'Bad ID';
@@ -339,15 +358,19 @@ function CrearProducto() {
 
 	$resources = $xml -> children() -> children();
 
-	$resources -> quantity = $_POST["cantidad_producto"];
-
+	//There we put our stock
+	//$resources -> quantity = $_POST["cantidad_producto"];
+	/*
+	 There we call to save our stock quantity.
+	 */
 	try {
 		$opt = array('resource' => 'stock_availables');
 		$opt['putXml'] = $xml -> asXML();
 		$opt['id'] = $stock_available_id;
 		$xml = $webService -> edit($opt);
-		echo "Successfully updated.";
+		// if WebService don't throw an exception the action worked well and we don't show the following message
 	} catch (PrestaShopWebserviceException $ex) {
+		// Here we are dealing with errors
 		$trace = $ex -> getTrace();
 		if ($trace[0]['args'][0] == 404)
 			echo 'Bad ID';
@@ -356,11 +379,19 @@ function CrearProducto() {
 		else
 			echo 'Other error<br />' . $ex -> getMessage();
 	}
-
+	/*
+	 Here we add an image a created product
+	 */
 	$url = PS_SHOP_PATH . '/api/images/products/' . $id_created_product;
 
+	// $url = "http://mctools.co/api/images/products/$id_created_product";
 
+	/**.
+	 * Uncomment the following line in order to update an existing image
+	 */
+	//$url = 'http://myprestashop.com/api/images/products/1/2?ps_method=PUT';
 	$image_path = $_FILES['upload']["tmp_name"];
+	//  $image_path="/home/users/web/b2716/ipg.markandstorecom/hijo.jpg";
 
 	if (isset($_FILES['upload'])) {
 		$errors = array();
@@ -404,3 +435,9 @@ function CrearProducto() {
 
 }
 
+function getCurlFile($filename) {
+	if (class_exists('CURLFile')) {
+		return new CURLFile(substr($filename, 1));
+	}
+	return $filename;
+}
