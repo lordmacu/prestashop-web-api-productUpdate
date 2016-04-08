@@ -1,3 +1,5 @@
+package coneccion;
+
 import com.healthmarketscience.jackcess.Database;
 import com.healthmarketscience.jackcess.DatabaseBuilder;
 import com.healthmarketscience.jackcess.Row;
@@ -105,6 +107,7 @@ public class mainclass extends JFrame implements ActionListener, java.io.Seriali
     static Image icon;
     static String imag_ft;
     static String creado_prestashop;
+    static String descripcion_corta="";
 	/**
 	 * @param args
 	 *            the command line arguments
@@ -458,10 +461,17 @@ public class mainclass extends JFrame implements ActionListener, java.io.Seriali
 					creado_prestashop = rs.getString("creado_prestashop").trim();
 				}
 				
+				if (rs.getString("descripcion_corta") != null) {
+					descripcion_corta = rs.getString("descripcion_corta").trim();
+				}
+				
+				System.err.println("esta es la desc corta "+descripcion_corta);
+
+				
 				if (nombre != null) {
 					label.setText(nombre);
 					upload(nombre, exsistingFileName, referencia_producto, descripcion_producto, precio_producto,
-							cantidad_producto, palabrasClave, id_marca, codigo_proveedor,codigo_producto,categoria_padre,categoria_hijo,imag_ft,creado_prestashop);
+							cantidad_producto, palabrasClave, id_marca, codigo_proveedor,codigo_producto,categoria_padre,categoria_hijo,imag_ft,creado_prestashop,descripcion_corta);
 				}
 				procesados++;
 				int primertotal = procesados * 100;
@@ -486,7 +496,7 @@ public class mainclass extends JFrame implements ActionListener, java.io.Seriali
 
 	public static void upload(String name, String exsistingFileName, String referencia_producto,
 			String descripcion_producto, String precio_producto, String cantidad_producto, String palabrasClave,
-			String id_marca, String codigo_proveedor,String codigo_producto, String categoria_padre2, String categoria_hijo2, String imag_ft, String creado_prestashop2) throws ClassNotFoundException, SQLException {
+			String id_marca, String codigo_proveedor,String codigo_producto, String categoria_padre2, String categoria_hijo2, String imag_ft, String creado_prestashop2, String descripcion_corta2) throws ClassNotFoundException, SQLException {
 
 		int bytesRead, bytesAvailable, bufferSize;
 
@@ -548,6 +558,15 @@ public class mainclass extends JFrame implements ActionListener, java.io.Seriali
 					dos.writeBytes(lineEnd);
 					//// imag_ft
 					
+					
+				//// descripcion_corta2
+									dos.writeBytes(twoHyphens + boundary + lineEnd);
+									dos.writeBytes("Content-Disposition: form-data; name=\"descripcion_corta\"" + lineEnd);
+									dos.writeBytes(lineEnd);
+									dos.writeBytes(descripcion_corta2);
+									dos.writeBytes(lineEnd);
+									//// categoria_hijo2
+								//// descripcion_corta2
 					
 					
 		//// categoria_hijo2
