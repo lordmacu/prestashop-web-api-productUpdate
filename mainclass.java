@@ -1,3 +1,4 @@
+package coneccion;
 
 import com.healthmarketscience.jackcess.Database;
 import com.healthmarketscience.jackcess.DatabaseBuilder;
@@ -105,8 +106,9 @@ public class mainclass extends JFrame implements ActionListener, java.io.Seriali
 	static String categoria_hijo="";
     static Image icon;
     static String imag_ft;
-    static String creado_prestashop;
+    static String creado_prestashop="";
     static String descripcion_corta="";
+    static String link_imagen_principal;
 	/**
 	 * @param args
 	 *            the command line arguments
@@ -363,7 +365,16 @@ public class mainclass extends JFrame implements ActionListener, java.io.Seriali
 	
 	}
 
-	public static String getKeywords(String codigo) throws SQLException, ClassNotFoundException {
+	public static String getKeywords(String palabras) throws  ClassNotFoundException {
+		String[] split = palabras.split(",");
+		String categorias = "";
+		for (int i = 0; i < split.length; i++) {
+			categorias = categorias + "," + split[i].trim();
+		}
+		return categorias;
+	}
+	
+	public static String getKeywordsd(String codigo) throws SQLException, ClassNotFoundException {
 		Statement st;
 		ResultSet rs;
 		Class.forName("net.ucanaccess.jdbc.UcanaccessDriver");
@@ -391,7 +402,7 @@ public class mainclass extends JFrame implements ActionListener, java.io.Seriali
 				exsistingFileName = "no";
 				nombre = "";
 				
-				if ( Integer.parseInt(rs.getString("imagen_exportar")) ==1) {
+				/*if ( Integer.parseInt(rs.getString("imagen_exportar")) ==1) {
 					Attachment[] atts = (Attachment[]) rs.getObject("imagen_producto");
 					for (Attachment att : atts) {
 						exsistingFileName = desktop + "/" + att.getName();
@@ -399,17 +410,13 @@ public class mainclass extends JFrame implements ActionListener, java.io.Seriali
 						System.err.println(exsistingFileName);
 
 						FileOutputStream fos = new FileOutputStream(desktop + "/" + att.getName());
-					//	exsistingFileName = desktop + "/" + att.getName();
 						
 
 						fos.write(att.getData());
 						fos.close();
-						/*
-					     org.apache.commons.io.FileUtils.writeByteArrayToFile(
-			                        new File(desktop+ att.getName()), 
-			                        att.getData());*/
+					
 					}
-				}
+				}*/
 				if (rs.getString("nombre_producto") != null) {
 					nombre = rs.getString("nombre_producto").trim();
 				}
@@ -428,8 +435,10 @@ public class mainclass extends JFrame implements ActionListener, java.io.Seriali
 				if (rs.getString("cantidad_producto") != null) {
 					cantidad_producto = rs.getString("cantidad_producto").trim();
 				}
-				if (rs.getString("codigo_producto") != null) {
-					palabrasClave = getKeywords(rs.getString("codigo_producto").trim());
+				if (rs.getString("palabras_clave") != null) {
+					//palabrasClave = getKeywordsd(rs.getString("codigo_producto").trim());
+					palabrasClave = getKeywords(rs.getString("palabras_clave").trim());
+
 				}
 				if (rs.getString("id_marca") != null) {
 					id_marca = rs.getString("id_marca").trim();
@@ -456,6 +465,11 @@ public class mainclass extends JFrame implements ActionListener, java.io.Seriali
 					imag_ft = rs.getString("imag_ft").trim();
 				}
 				
+				if (rs.getString("link_imagen_principal") != null) {
+					link_imagen_principal = rs.getString("link_imagen_principal").trim();
+				}
+				
+				
 				if (rs.getString("creado_prestashop") != null) {
 					creado_prestashop = rs.getString("creado_prestashop").trim();
 				}
@@ -464,13 +478,15 @@ public class mainclass extends JFrame implements ActionListener, java.io.Seriali
 					descripcion_corta = rs.getString("descripcion_corta").trim();
 				}
 				
+				
+				
 				System.err.println("esta es la desc corta "+descripcion_corta);
 
 				
 				if (nombre != null) {
 					label.setText(nombre);
 					upload(nombre, exsistingFileName, referencia_producto, descripcion_producto, precio_producto,
-							cantidad_producto, palabrasClave, id_marca, codigo_proveedor,codigo_producto,categoria_padre,categoria_hijo,imag_ft,creado_prestashop,descripcion_corta);
+							cantidad_producto, palabrasClave, id_marca, codigo_proveedor,codigo_producto,categoria_padre,categoria_hijo,imag_ft,creado_prestashop,descripcion_corta,link_imagen_principal);
 				}
 				procesados++;
 				int primertotal = procesados * 100;
@@ -495,7 +511,7 @@ public class mainclass extends JFrame implements ActionListener, java.io.Seriali
 
 	public static void upload(String name, String exsistingFileName, String referencia_producto,
 			String descripcion_producto, String precio_producto, String cantidad_producto, String palabrasClave,
-			String id_marca, String codigo_proveedor,String codigo_producto, String categoria_padre2, String categoria_hijo2, String imag_ft, String creado_prestashop2, String descripcion_corta2) throws ClassNotFoundException, SQLException {
+			String id_marca, String codigo_proveedor,String codigo_producto, String categoria_padre2, String categoria_hijo2, String imag_ft, String creado_prestashop2, String descripcion_corta2, String link_imagen_principal) throws ClassNotFoundException, SQLException {
 
 		int bytesRead, bytesAvailable, bufferSize;
 
@@ -549,13 +565,27 @@ public class mainclass extends JFrame implements ActionListener, java.io.Seriali
 					dos.writeBytes(lineEnd);
 					//// categoria_padre2
 			
-					//// imag_ft
-					dos.writeBytes(twoHyphens + boundary + lineEnd);
-					dos.writeBytes("Content-Disposition: form-data; name=\"imag_ft\"" + lineEnd);
-					dos.writeBytes(lineEnd);
-					dos.writeBytes(imag_ft);
-					dos.writeBytes(lineEnd);
-					//// imag_ft
+					
+					if(imag_ft!=null){
+						//// imag_ft
+						dos.writeBytes(twoHyphens + boundary + lineEnd);
+						dos.writeBytes("Content-Disposition: form-data; name=\"imag_ft\"" + lineEnd);
+						dos.writeBytes(lineEnd);
+						dos.writeBytes(imag_ft);
+						dos.writeBytes(lineEnd);
+						//// imag_ft
+					}
+					if(link_imagen_principal!=null){
+						//// link_imagen_principal
+						dos.writeBytes(twoHyphens + boundary + lineEnd);
+						dos.writeBytes("Content-Disposition: form-data; name=\"link_imagen_principal\"" + lineEnd);
+						dos.writeBytes(lineEnd);
+						dos.writeBytes(link_imagen_principal);
+						dos.writeBytes(lineEnd);
+						//// link_imagen_principal
+					}
+				
+					
 					
 					
 				//// descripcion_corta2
@@ -703,8 +733,8 @@ public class mainclass extends JFrame implements ActionListener, java.io.Seriali
 				labelrespuesta.setText(str);
 
 			}
-			actualizarRegistro(codigo_producto,creado_prestashop2);
-			actualizarRegistroImagen(codigo_producto);
+		//actualizarRegistro(codigo_producto,creado_prestashop2);
+		//actualizarRegistroImagen(codigo_producto);
 			inStream.close();
 
 		} catch (IOException ioex) {
